@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creación del Precio</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f8f7f4;color:#1a1a18;padding:1rem 1rem 3rem}
+.wrap{max-width:600px;margin:0 auto}
+
+/* header */
+.hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:1rem;padding-bottom:0.8rem;border-bottom:1px solid #d3d1c7}
+h1{font-size:15px;font-weight:600;letter-spacing:-.2px}
+.sub{font-size:11px;color:#888780;margin-top:2px}
+.logo-area{display:flex;align-items:center;gap:8px}
+.logo-box{width:80px;height:38px;border:1.5px dashed #b4b2a9;border-radius:5px;display:flex;align-items:center;justify-content:center;background:#fff;position:relative;overflow:hidden;cursor:pointer}
+.logo-box:hover{background:#f1efe8}
+#logoImg{width:100%;height:100%;object-fit:contain;display:none}
+.lhint{font-size:9px;color:#888780;pointer-events:none;text-align:center;line-height:1.4}
+.logo-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+#lremove{font-size:10px;color:#888780;cursor:pointer;display:none}
+#empNombre{font-size:11px;font-weight:500;border:none;border-bottom:1px solid #d3d1c7;background:transparent;outline:none;width:130px;text-align:center;padding:2px 0}
+#empNombre::placeholder{color:#b4b2a9;font-weight:400}
+
+/* tabs */
+.tabs{display:flex;gap:0;margin-bottom:1rem;background:#f1efe8;border-radius:8px;padding:3px}
+.tab{flex:1;padding:5px 8px;font-size:12px;font-weight:500;border-radius:5px;border:none;background:transparent;color:#5f5e5a;cursor:pointer;font-family:inherit;transition:background .15s;text-align:center}
+.tab.active{background:#fff;color:#1a1a18;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.panel{display:none}.panel.active{display:block}
+
+/* ── ACORDEÓN COMPACTO ── */
+.acord{border:1px solid #d3d1c7;border-radius:8px;margin-bottom:5px;background:#fff;overflow:hidden}
+.acord-hd{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;user-select:none;min-height:38px}
+.acord-hd:hover{background:#f8f7f4}
+.acord-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:10px;flex-shrink:0;text-transform:uppercase;letter-spacing:.3px}
+.bp{background:#E6F1FB;color:#0C447C}
+.bm{background:#EAF3DE;color:#27500A}
+.bg{background:#FAEEDA;color:#633806}
+.bi{background:#EEEDFE;color:#3C3489}
+.bt{background:#E1F5EE;color:#085041}
+.acord-title{flex:1;font-size:12px;font-weight:500;color:#1a1a18}
+.acord-tot{font-size:12px;font-weight:600;min-width:80px;text-align:right;color:#888780}
+.acord-tot.pos{color:#27500A}.acord-tot.neg{color:#A32D2D}
+.acord-arr{font-size:10px;color:#b4b2a9;transition:transform .2s;flex-shrink:0;margin-left:4px}
+.acord-arr.open{transform:rotate(180deg)}
+.acord-body{display:none;border-top:1px solid #f1efe8;padding:8px 10px 10px}
+.acord-body.open{display:block}
+
+/* grilla 2 columnas para inputs */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-bottom:2px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px 8px;margin-bottom:2px}
+.fcell{display:flex;flex-direction:column;gap:2px}
+.fcell label{font-size:10px;color:#888780;font-weight:500}
+.finp{font-size:12px;border:1px solid #d3d1c7;border-radius:5px;padding:4px 7px;background:#f1efe8;color:#1a1a18;outline:none;text-align:right;width:100%}
+.finp:focus{border-color:#888780;background:#fff}
+.finp.pct{text-align:center}
+.finp-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.finp-row label{font-size:11px;color:#5f5e5a;flex:1}
+.finp-row .finp{width:80px}
+.finp-row .finp.pct{width:60px}
+.funit{font-size:10px;color:#888780}
+.fresult{font-size:11px;font-weight:600;min-width:80px;text-align:right;color:#888780}
+.fresult.pos{color:#27500A}
+
+/* hint colapsable */
+.hint-txt{font-size:10px;color:#888780;background:#f8f7f4;border-left:2px solid #d3d1c7;padding:4px 7px;border-radius:0 3px 3px 0;margin-bottom:6px;line-height:1.5;cursor:pointer}
+.hint-txt:hover{color:#5f5e5a}
+
+/* subtotales */
+.subbar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:6px;background:#f1efe8;margin:4px 0}
+.subbar.strong{background:#1a1a18}
+.subbar.strong .slbl,.subbar.strong .sval{color:#f8f7f4}
+.subbar.green{background:#EAF3DE}
+.subbar.green .slbl,.subbar.green .sval{color:#27500A}
+.subbar.blue{background:#E6F1FB}
+.subbar.blue .slbl,.subbar.blue .sval{color:#0C447C}
+.slbl{font-size:11px;font-weight:500}
+.sval{font-size:12px;font-weight:600}
+
+/* IVA selector inline */
+.iva-inline{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:6px;background:#f1efe8;margin:4px 0;gap:8px}
+.iva-inline select{font-size:11px;border:1px solid #d3d1c7;border-radius:4px;padding:3px 6px;background:#fff;outline:none;color:#1a1a18}
+.iva-inline .iva-val{font-size:11px;font-weight:600;color:#5f5e5a;white-space:nowrap}
+
+/* impuestos compacto */
+.imp-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #f8f7f4}
+.imp-row:last-child{border-bottom:none;padding-top:5px}
+.imp-lbl{font-size:10px;color:#5f5e5a;flex:1}
+.imp-res{font-size:11px;font-weight:500;color:#5f5e5a;min-width:70px;text-align:right}
+
+/* resumen visible lateral (solo desktop) */
+.layout{display:flex;gap:14px;align-items:flex-start}
+.panel-precio-main{flex:1;min-width:0}
+.precio-sidebar{width:170px;flex-shrink:0;position:sticky;top:10px}
+@media(max-width:580px){.layout{flex-direction:column}.precio-sidebar{width:100%;position:static}}
+
+.sidebar-card{background:#fff;border:1px solid #d3d1c7;border-radius:8px;padding:10px 12px}
+.sidebar-card h3{font-size:10px;font-weight:600;color:#888780;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f1efe8}
+.sb-row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:10px;border-bottom:1px solid #f8f7f4}
+.sb-row:last-child{border-bottom:none}
+.sb-lbl{color:#888780;flex:1}
+.sb-val{font-weight:500;color:#1a1a18;text-align:right}
+.sb-row.highlight .sb-lbl{color:#5f5e5a;font-weight:500}
+.sb-row.highlight .sb-val{color:#27500A;font-size:11px}
+.sb-row.big .sb-lbl{color:#1a1a18;font-weight:600;font-size:11px}
+.sb-row.big .sb-val{color:#27500A;font-weight:700;font-size:13px}
+.sb-sep{border-top:1px solid #d3d1c7;margin:4px 0}
+
+/* ── PANEL PROYECCIÓN ── */
+.proy-config{background:#fff;border:1px solid #d3d1c7;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.proy-config h3{font-size:11px;font-weight:600;margin-bottom:8px;color:#1a1a18}
+.mode-sw{display:flex;gap:4px;background:#f1efe8;border-radius:6px;padding:3px;margin-bottom:8px;width:fit-content}
+.mode-btn{padding:4px 12px;font-size:11px;font-weight:500;border-radius:4px;border:none;background:transparent;color:#5f5e5a;cursor:pointer;font-family:inherit}
+.mode-btn.active{background:#fff;color:#1a1a18;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.pref-lbl{font-size:10px;color:#888780}
+
+.prod-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
+.prod-table th{font-size:9px;font-weight:600;color:#888780;text-align:left;padding:4px 5px;border-bottom:1px solid #d3d1c7;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+.prod-table th.r{text-align:right}
+.prod-table td{padding:3px 3px;border-bottom:1px solid #f1efe8;vertical-align:middle}
+.prod-table tr:last-child td{border-bottom:none}
+.pinp{width:100%;font-size:11px;border:1px solid #d3d1c7;border-radius:4px;padding:3px 5px;background:#f1efe8;color:#1a1a18;outline:none}
+.pinp:focus{border-color:#888780}
+.pinp.num{text-align:right}
+.ptot{font-size:11px;font-weight:500;text-align:right;color:#27500A;padding:3px 5px}
+.pdel{width:20px;height:20px;border-radius:50%;border:1px solid #e0dfdb;background:#fff;color:#888780;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pdel:hover{background:#FCEBEB;color:#A32D2D;border-color:#f0c0c0}
+.add-prod{font-size:11px;color:#5f5e5a;border:1px dashed #b4b2a9;background:transparent;border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;margin-bottom:8px}
+.add-prod:hover{background:#f1efe8}
+
+.meses-wrap{overflow-x:auto;margin-bottom:8px}
+.mes-table{border-collapse:collapse;font-size:10px;min-width:540px;width:100%}
+.mes-table th{font-size:9px;font-weight:500;color:#888780;padding:3px 5px;border-bottom:1px solid #d3d1c7;text-align:center;white-space:nowrap}
+.mes-table th.lft{text-align:left}
+.mes-table td{padding:2px 3px;border-bottom:1px solid #f8f7f4;text-align:center}
+.mes-table td.lft{text-align:left;color:#5f5e5a;font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mes-table tr.tot-row td{background:#f1efe8;font-weight:500;font-size:10px;border-top:1px solid #d3d1c7}
+.mes-table tr.tot-row td.lft{color:#1a1a18}
+.minp-m{width:44px;font-size:10px;border:1px solid #d3d1c7;border-radius:3px;padding:2px 3px;background:#f1efe8;color:#1a1a18;outline:none;text-align:center}
+.minp-m:focus{border-color:#888780}
+.mval-calc{font-size:9px;font-variant-numeric:tabular-nums;color:#b4b2a9;display:block;text-align:center}
+.mval-calc.pos{color:#27500A}
+
+.proy-res{background:#fff;border:1px solid #d3d1c7;border-radius:8px;padding:8px 12px;margin-bottom:6px}
+.proy-res h3{font-size:10px;font-weight:600;color:#888780;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.proy-sum-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #f8f7f4;font-size:11px}
+.proy-sum-row:last-child{border-bottom:none;font-weight:500;font-size:12px;padding-top:5px}
+
+.rem-bar{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:5px;margin-bottom:4px;font-size:10px}
+.rem-bar.ok{background:#EAF3DE;color:#27500A}
+.rem-bar.warn{background:#FAEEDA;color:#633806}
+.rem-bar.over{background:#FCEBEB;color:#A32D2D}
+.rem-track{flex:1;height:5px;background:#d3d1c7;border-radius:3px;overflow:hidden}
+.rem-fill{height:100%;border-radius:3px;transition:width .3s}
+.rem-fill.ok{background:#1D9E75}.rem-fill.warn{background:#BA7517}.rem-fill.over{background:#A32D2D}
+
+/* botones */
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:1.2rem;padding-top:0.8rem;border-top:1px solid #d3d1c7;align-items:center}
+button{padding:6px 11px;font-size:11px;border-radius:6px;border:1px solid #b4b2a9;background:#fff;color:#1a1a18;cursor:pointer;font-family:inherit}
+button:hover{background:#f1efe8}
+.pri{background:#1a1a18!important;color:#f8f7f4!important;border-color:#1a1a18!important}
+.pri:hover{background:#3a3a38!important}
+.danger{color:#A32D2D!important;border-color:#f0c0c0!important;margin-left:auto}
+.ssmsg{font-size:10px;color:#888780}
+.footer{margin-top:1.5rem;font-size:10px;color:#b4b2a9;text-align:center}
+
+/* resumen JPG */
+.resumen-precio{display:none;background:#fff;border:1px solid #d3d1c7;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.resumen-precio h3{font-size:13px;font-weight:500;margin-bottom:8px;color:#1a1a18;padding-bottom:6px;border-bottom:1px solid #f1efe8}
+.rp-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f8f7f4;font-size:11px}
+.rp-row:last-child{border-bottom:none}
+.rp-lbl{color:#5f5e5a}.rp-val{font-weight:500;color:#1a1a18}
+.rp-val.pos{color:#27500A}
+.rp-sep{border-top:2px solid #d3d1c7;margin:5px 0}
+.rp-total{font-size:12px;font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <h1>Creación del precio</h1>
+    <p class="sub">Costo y proyección de ventas</p>
+  </div>
+  <div class="logo-area">
+    <div class="logo-box" id="logoBox">
+      <img id="logoImg" alt="logo">
+      <span class="lhint" id="lhint">+ Logo</span>
+      <input type="file" accept="image/*" onchange="loadLogo(this)">
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <input id="empNombre" type="text" placeholder="Empresa" oninput="autoSave()">
+      <span id="lremove" onclick="removeLogo()">✕ quitar logo</span>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="setTab('precio')">Determinación del precio</button>
+  <button class="tab" onclick="setTab('proyeccion')">Proyección de ventas</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PANEL 1: PRECIO -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="panel active" id="panel-precio">
+<div class="layout">
+
+<!-- COLUMNA PRINCIPAL -->
+<div class="panel-precio-main">
+
+<!-- PROVEEDORES -->
+<div class="acord">
+  <div class="acord-hd" onclick="tog('prov')">
+    <span class="acord-badge bp">Proveedores</span>
+    <span class="acord-title">Servicios · Insumos · Capital</span>
+    <span class="acord-tot" id="tot-prov">—</span>
+    <span class="acord-arr" id="arr-prov">▼</span>
+  </div>
+  <div class="acord-body" id="body-prov">
+    <div class="grid2" style="margin-bottom:8px">
+      <div class="fcell"><label>Servicio 1</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="psvc_0" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Servicio 2</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="psvc_1" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Servicio 3</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="psvc_2" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Insumo / material 1</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="pins_0" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Insumo / material 2</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="pins_1" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Insumo / material 3</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="pins_2" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Bien de capital cuota 1</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="pbk_0" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Bien de capital cuota 2</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="pbk_1" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;font-size:10px;color:#888780;padding-top:4px;border-top:1px solid #f1efe8">
+      <span>Servicios: <b id="tot-psvc" style="color:#1a1a18">—</b></span>
+      <span>Insumos: <b id="tot-pins" style="color:#1a1a18">—</b></span>
+      <span>Capital: <b id="tot-pbk" style="color:#1a1a18">—</b></span>
+    </div>
+  </div>
+</div>
+
+<!-- MANO DE OBRA -->
+<div class="acord">
+  <div class="acord-hd" onclick="tog('mdo')">
+    <span class="acord-badge bm">Mano de obra</span>
+    <span class="acord-title">MO directa y cargas sociales</span>
+    <span class="acord-tot" id="tot-mdo">—</span>
+    <span class="acord-arr" id="arr-mdo">▼</span>
+  </div>
+  <div class="acord-body" id="body-mdo">
+    <div class="grid3">
+      <div class="fcell"><label>Sueldos netos</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="mdo_sueldo" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Cargas sociales</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="mdo_cargas" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>SAC / vacaciones</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="mdo_otros" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GASTOS DIRECTOS -->
+<div class="acord">
+  <div class="acord-hd" onclick="tog('gdir')">
+    <span class="acord-badge bg">Gs. directos</span>
+    <span class="acord-title">Gastos directos de producción</span>
+    <span class="acord-tot" id="tot-gdir">—</span>
+    <span class="acord-arr" id="arr-gdir">▼</span>
+  </div>
+  <div class="acord-body" id="body-gdir">
+    <div class="grid3">
+      <div class="fcell"><label>Fletes</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="gdir_fletes" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Combustible</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="gdir_comb" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Servicios básicos</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="gdir_serv" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Seguros directos</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="gdir_seg" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Supervisión</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="gdir_sup" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+      <div class="fcell"><label>Otros directos</label><input class="finp" type="text" inputmode="numeric" placeholder="0" id="gdir_otros" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBTOTAL COSTO DIRECTO -->
+<div class="subbar" id="bar-cd">
+  <span class="slbl">= Costo directo</span>
+  <span class="sval" id="val-cd">—</span>
+</div>
+
+<!-- INDIRECTOS + BENEFICIO en una sola fila -->
+<div class="acord">
+  <div class="acord-hd" onclick="tog('gindir')">
+    <span class="acord-badge bi">Indirectos</span>
+    <span class="acord-title">Gastos indirectos</span>
+    <span class="acord-tot" id="tot-gindir">—</span>
+    <span class="acord-arr" id="arr-gindir">▼</span>
+  </div>
+  <div class="acord-body" id="body-gindir">
+    <div class="finp-row">
+      <label>% s/costo directo (alquiler, admin, etc.)</label>
+      <input class="finp pct" type="text" inputmode="decimal" placeholder="0" id="pct-gindir" oninput="calcPrecio()">
+      <span class="funit">%</span>
+      <span class="fresult pos" id="res-gindir">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- SUBTOTAL COSTO TOTAL -->
+<div class="subbar" id="bar-ct">
+  <span class="slbl">= Costo total</span>
+  <span class="sval" id="val-ct">—</span>
+</div>
+
+<!-- BENEFICIO -->
+<div class="acord">
+  <div class="acord-hd" onclick="tog('benef')">
+    <span class="acord-badge bt">Beneficio</span>
+    <span class="acord-title">Margen de beneficio</span>
+    <span class="acord-tot" id="tot-benef">—</span>
+    <span class="acord-arr" id="arr-benef">▼</span>
+  </div>
+  <div class="acord-body" id="body-benef">
+    <div class="finp-row">
+      <label>% beneficio s/costo total</label>
+      <input class="finp pct" type="text" inputmode="decimal" placeholder="0" id="pct-benef" oninput="calcPrecio()">
+      <span class="funit">%</span>
+      <span class="fresult pos" id="res-benef">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- COSTO ANTES IMPUESTOS -->
+<div class="subbar" id="bar-cai">
+  <span class="slbl">= Costo antes de impuestos</span>
+  <span class="sval" id="val-cai">—</span>
+</div>
+
+<!-- IMPUESTOS -->
+<div class="acord">
+  <div class="acord-hd" onclick="tog('imp')">
+    <span class="acord-badge bi">Impuestos</span>
+    <span class="acord-title">Cargas impositivas</span>
+    <span class="acord-tot" id="tot-imp">—</span>
+    <span class="acord-arr" id="arr-imp">▼</span>
+  </div>
+  <div class="acord-body" id="body-imp">
+    <div class="grid2" style="margin-bottom:8px">
+      <div class="fcell"><label>Ganancias s/beneficio (%)</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="finp pct" type="text" inputmode="decimal" placeholder="0" id="pct-gan" oninput="calcPrecio()" style="flex:1">
+          <span class="funit">%</span>
+        </div>
+      </div>
+      <div class="fcell"><label>Ingresos brutos (%)</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="finp pct" type="text" inputmode="decimal" placeholder="0" id="pct-iibb" oninput="calcPrecio()" style="flex:1">
+          <span class="funit">%</span>
+        </div>
+      </div>
+      <div class="fcell"><label>Créditos y débitos (%)</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="finp pct" type="text" inputmode="decimal" placeholder="0" id="pct-cd" oninput="calcPrecio()" style="flex:1">
+          <span class="funit">%</span>
+        </div>
+      </div>
+      <div class="fcell">
+        <label>Monotributo ($/mes)</label>
+        <input class="finp" type="text" inputmode="numeric" placeholder="0" id="monto-mono" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)">
+        <div style="display:flex;align-items:center;gap:4px;margin-top:3px">
+          <span style="font-size:9px;color:#888780;flex:1">÷ unidades/mes</span>
+          <input class="finp" type="text" inputmode="numeric" placeholder="1" id="mono-unid" oninput="calcPrecio()" style="width:60px;font-size:11px" title="Cantidad de unidades mensuales entre las que se distribuye el monotributo">
+          <span id="mono-xunid" style="font-size:9px;color:#27500A;min-width:52px;text-align:right"></span>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:10px;padding-top:5px;border-top:1px solid #f1efe8">
+      <div class="imp-row"><span class="imp-lbl">Ganancias</span><span class="imp-res" id="res-gan">—</span></div>
+      <div class="imp-row"><span class="imp-lbl">IIBB</span><span class="imp-res" id="res-iibb">—</span></div>
+      <div class="imp-row"><span class="imp-lbl">C&amp;D</span><span class="imp-res" id="res-cdeb">—</span></div>
+      <div class="imp-row"><span class="imp-lbl">Monotributo</span><span class="imp-res" id="res-mono">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- COSTO FINAL -->
+<div class="subbar strong" id="bar-cf">
+  <span class="slbl">= Costo final (sin IVA)</span>
+  <span class="sval" id="val-cf">—</span>
+</div>
+
+<!-- IVA inline -->
+<div class="iva-inline">
+  <span class="slbl">IVA</span>
+  <select id="sel-iva" onchange="calcPrecio()">
+    <option value="21">21% — general</option>
+    <option value="10.5">10,5% — reducida</option>
+    <option value="27">27% — servicios públicos</option>
+    <option value="0">0% — exento / mono</option>
+  </select>
+  <span class="iva-val" id="val-iva">—</span>
+</div>
+
+<!-- PRECIO FINAL -->
+<div class="subbar green" style="margin-top:4px">
+  <span class="slbl">PRECIO FINAL (con IVA)</span>
+  <span class="sval" id="val-pf">—</span>
+</div>
+<div class="subbar blue" style="margin-top:3px">
+  <span class="slbl">Precio sugerido (redondeado)</span>
+  <span class="sval" id="val-pfr">—</span>
+</div>
+
+</div><!-- /panel-precio-main -->
+
+<!-- SIDEBAR RESUMEN -->
+<div class="precio-sidebar">
+  <div class="sidebar-card">
+    <h3>Resumen</h3>
+    <div class="sb-row"><span class="sb-lbl">Proveedores</span><span class="sb-val" id="sb-prov">—</span></div>
+    <div class="sb-row"><span class="sb-lbl">Mano de obra</span><span class="sb-val" id="sb-mdo">—</span></div>
+    <div class="sb-row"><span class="sb-lbl">Gs. directos</span><span class="sb-val" id="sb-gdir">—</span></div>
+    <div class="sb-sep"></div>
+    <div class="sb-row highlight"><span class="sb-lbl">Costo directo</span><span class="sb-val" id="sb-cd">—</span></div>
+    <div class="sb-row"><span class="sb-lbl">+ Indirectos</span><span class="sb-val" id="sb-gi">—</span></div>
+    <div class="sb-row highlight"><span class="sb-lbl">Costo total</span><span class="sb-val" id="sb-ct">—</span></div>
+    <div class="sb-row"><span class="sb-lbl">+ Beneficio</span><span class="sb-val" id="sb-benef">—</span></div>
+    <div class="sb-row"><span class="sb-lbl">+ Impuestos</span><span class="sb-val" id="sb-imp">—</span></div>
+    <div class="sb-sep"></div>
+    <div class="sb-row highlight"><span class="sb-lbl">Sin IVA</span><span class="sb-val" id="sb-cf">—</span></div>
+    <div class="sb-row"><span class="sb-lbl">+ IVA</span><span class="sb-val" id="sb-iva">—</span></div>
+    <div class="sb-sep"></div>
+    <div class="sb-row big"><span class="sb-lbl">PRECIO</span><span class="sb-val" id="sb-pf">—</span></div>
+    <div class="sb-row" style="padding-top:2px"><span class="sb-lbl" style="font-size:9px;color:#888780">Sugerido</span><span class="sb-val" style="color:#0C447C;font-weight:600" id="sb-pfr">—</span></div>
+  </div>
+</div>
+
+</div><!-- /layout -->
+
+<!-- RESUMEN COMPACTO PARA JPG (oculto en uso normal) -->
+<div class="resumen-precio" id="resumen-precio">
+  <h3>Resumen de precio — <span id="rp-empresa"></span></h3>
+  <div class="rp-row"><span class="rp-lbl">Servicios proveedores</span><span class="rp-val" id="rp-psvc">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">Insumos y materiales</span><span class="rp-val" id="rp-pins">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">Bienes de capital</span><span class="rp-val" id="rp-pbk">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">Mano de obra y cargas sociales</span><span class="rp-val" id="rp-mdo">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">Gastos directos</span><span class="rp-val" id="rp-gdir">—</span></div>
+  <div class="rp-sep"></div>
+  <div class="rp-row rp-total"><span class="rp-lbl">= Costo directo</span><span class="rp-val" id="rp-cd">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">+ Gastos indirectos</span><span class="rp-val" id="rp-gi">—</span></div>
+  <div class="rp-row rp-total"><span class="rp-lbl">= Costo total</span><span class="rp-val" id="rp-ct">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">+ Beneficio</span><span class="rp-val pos" id="rp-benef">—</span></div>
+  <div class="rp-row rp-total"><span class="rp-lbl">= Costo antes de impuestos</span><span class="rp-val" id="rp-cai">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">+ Impuestos (Gan. / IIBB / C&D / Mono)</span><span class="rp-val" id="rp-imp">—</span></div>
+  <div class="rp-sep"></div>
+  <div class="rp-row rp-total"><span class="rp-lbl">= Costo final (sin IVA)</span><span class="rp-val" id="rp-cf">—</span></div>
+  <div class="rp-row"><span class="rp-lbl">+ IVA</span><span class="rp-val" id="rp-iva">—</span></div>
+  <div class="rp-sep"></div>
+  <div class="rp-row" style="font-size:14px;font-weight:600"><span class="rp-lbl">PRECIO FINAL</span><span class="rp-val pos" id="rp-pf">—</span></div>
+  <div class="rp-row" style="font-size:13px"><span class="rp-lbl">Precio sugerido (redondeado)</span><span class="rp-val pos" id="rp-pfr">—</span></div>
+  <div style="margin-top:6px;font-size:10px;color:#888780;text-align:right">Cr. Córdoba Marcos · CNV 2073</div>
+</div>
+
+</div><!-- /panel-precio -->
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PANEL 2: PROYECCIÓN -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="panel" id="panel-proyeccion">
+
+  <div class="proy-config">
+    <h3>Modo de proyección</h3>
+    <div class="mode-sw">
+      <button class="mode-btn active" id="mbtn-uni" onclick="setMode('unitario')">Por unidades</button>
+      <button class="mode-btn" id="mbtn-pct" onclick="setMode('porcentaje')">Por % variación</button>
+    </div>
+    <p class="pref-lbl" id="mode-hint">Ingresá la cantidad de unidades vendidas por mes para cada producto.</p>
+    <p style="font-size:9px;color:#b4b2a9;margin-top:4px">El precio base se toma de "Determinación del precio" (precio final con IVA).</p>
+  </div>
+
+  <div id="rem-section" style="display:none"><div id="rem-bars"></div></div>
+
+  <table class="prod-table" id="prod-table">
+    <thead><tr>
+      <th>Producto / servicio</th>
+      <th class="r">Precio base</th>
+      <th class="r" id="col-modo-lbl" title="Cantidad de referencia (opcional)">Ref.</th>
+      <th></th>
+    </tr></thead>
+    <tbody id="prod-tbody"></tbody>
+  </table>
+  <button class="add-prod" onclick="addProd()" id="btn-add-prod">+ Agregar producto o servicio</button>
+
+  <div class="meses-wrap">
+    <table class="mes-table" id="mes-table">
+      <thead id="mes-thead"></thead>
+      <tbody id="mes-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="proy-res">
+    <h3>Resumen proyección anual</h3>
+    <div id="proy-resumen"></div>
+  </div>
+
+</div><!-- /panel-proyeccion -->
+
+<!-- BOTONES -->
+<div class="btns">
+  <button class="pri" onclick="guardar()">↓ Guardar</button>
+  <button onclick="backup()">↗ Backup</button>
+  <button onclick="document.getElementById('rInp').click()">↑ Recuperar</button>
+  <button onclick="descargarJPG()">↓ JPG</button>
+  <button class="danger" onclick="limpiar()">↺ Limpiar</button>
+  <input type="file" id="rInp" accept=".json" style="display:none" onchange="recuperar(this)">
+  <span class="ssmsg" id="ssmsg"></span>
+</div>
+<div class="footer">Herramienta de circulación libre · Prohibida su comercialización · Cr. Córdoba Marcos · CNV 2073</div>
+
+</div><!-- /wrap -->
+<script>
+const SK='precio_v2';
+const MESES_NOM=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+let MODE='unitario';
+let productos=[];
+
+function setTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['precio','proyeccion'][i]===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+  if(t==='proyeccion') renderProy();
+}
+
+function parseVal(s){return parseFloat((s||'').toString().replace(/\./g,'').replace(',','.')) || 0;}
+function gn(id){return parseVal((document.getElementById(id)||{value:''}).value);}
+function fmt(n){if(n===0)return'—';return(n<0?'-':'')+'$'+Math.abs(Math.round(n)).toLocaleString('es-AR');}
+function fmtN(n){return n===0?'—':'$'+Math.round(n).toLocaleString('es-AR');}
+function tog(rid){
+  document.getElementById('body-'+rid).classList.toggle('open');
+  document.getElementById('arr-'+rid).classList.toggle('open');
+}
+function si(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function onBlurFmt(el){const n=parseVal(el.value);el.value=n?Math.round(Math.abs(n)).toLocaleString('es-AR'):'';}
+function onFocusFmt(el){const n=parseVal(el.value);el.value=n?String(Math.round(Math.abs(n))):'';}
+function onKeyNavFinp(e){
+  if(e.key!=='Enter')return;
+  e.preventDefault();
+  const all=Array.from(document.querySelectorAll('.finp:not(.pct)'));
+  const idx=all.indexOf(e.target);
+  if(idx>=0&&idx<all.length-1)all[idx+1].focus();
+}
+
+let precioFinal=0;
+function calcPrecio(){
+  const psvc=[0,1,2].reduce((a,i)=>a+gn('psvc_'+i),0);
+  const pins=[0,1,2].reduce((a,i)=>a+gn('pins_'+i),0);
+  const pbk=[0,1].reduce((a,i)=>a+gn('pbk_'+i),0);
+  const prov=psvc+pins+pbk;
+  si('tot-psvc',fmt(psvc));si('tot-pins',fmt(pins));si('tot-pbk',fmt(pbk));
+  si('tot-prov',fmt(prov));si('sb-prov',fmt(prov));
+
+  const mdo=gn('mdo_sueldo')+gn('mdo_cargas')+gn('mdo_otros');
+  si('tot-mdo',fmt(mdo));si('sb-mdo',fmt(mdo));
+
+  const gdir=gn('gdir_fletes')+gn('gdir_comb')+gn('gdir_serv')+gn('gdir_seg')+gn('gdir_sup')+gn('gdir_otros');
+  si('tot-gdir',fmt(gdir));si('sb-gdir',fmt(gdir));
+
+  const cd=prov+mdo+gdir;
+  si('val-cd',fmt(cd));si('sb-cd',fmt(cd));
+
+  const pctGI=gn('pct-gindir')/100;
+  const gi=cd*pctGI;
+  si('res-gindir',fmt(gi));si('tot-gindir',fmt(gi));si('sb-gi',fmt(gi));
+
+  const ct=cd+gi;
+  si('val-ct',fmt(ct));si('sb-ct',fmt(ct));
+
+  const pctB=gn('pct-benef')/100;
+  const benef=ct*pctB;
+  si('res-benef',fmt(benef));si('tot-benef',fmt(benef));si('sb-benef',fmt(benef));
+
+  const cai=ct+benef;
+  si('val-cai',fmt(cai));
+
+  const rGan=benef*(gn('pct-gan')/100);
+  si('res-gan',fmt(rGan));
+
+  const despGan=cai+rGan;
+  const pctIIBB=gn('pct-iibb')/100;
+  const pctCD=gn('pct-cd')/100;
+  const monoTotal=gn('monto-mono');
+  const monoUnid=gn('mono-unid')||1;
+  const mono=monoTotal/monoUnid;
+  // mostrar costo mono por unidad
+  const monoXU=document.getElementById('mono-xunid');
+  if(monoXU) monoXU.textContent=mono>0?'$'+Math.round(mono).toLocaleString('es-AR')+'/u':'';
+  const denom=1-pctIIBB-pctCD;
+  const cf=denom>0?(despGan+mono)/denom:(despGan+mono);
+  const rIIBB=cf*pctIIBB;
+  const rCD=cf*pctCD;
+
+  si('res-iibb',fmt(rIIBB));si('res-cdeb',fmt(rCD));si('res-mono',fmt(mono));
+  const totImp=rGan+rIIBB+rCD+mono;
+  si('tot-imp',fmt(totImp));si('sb-imp',fmt(totImp));
+  si('val-cf',fmt(cf));si('sb-cf',fmt(cf));
+
+  const pctIVA=parseFloat(document.getElementById('sel-iva').value)/100;
+  const iva=cf*pctIVA;
+  si('val-iva',fmt(iva));si('sb-iva',fmt(iva));
+
+  const pf=cf+iva;
+  precioFinal=pf;
+  si('val-pf',fmt(pf));si('sb-pf',fmt(pf));
+  const pfr=Math.ceil(pf/100)*100;
+  si('val-pfr',fmt(pfr));si('sb-pfr',fmt(pfr));
+
+  autoSave();
+  syncPrecioBase();
+}
+
+function setMode(m){
+  MODE=m;
+  document.getElementById('mbtn-uni').classList.toggle('active',m==='unitario');
+  document.getElementById('mbtn-pct').classList.toggle('active',m==='porcentaje');
+  document.getElementById('mode-hint').textContent=m==='unitario'
+    ?'Ingresá la cantidad de unidades vendidas por mes para cada producto.'
+    :'Ingresá el % a cobrar cada mes sobre el valor total de cada obra o servicio. La suma debe dar 100%.';
+  document.getElementById('col-modo-lbl').textContent=m==='unitario'?'Ref.':'% base';
+  document.getElementById('rem-section').style.display=m==='porcentaje'?'block':'none';
+  renderProy();autoSave();
+}
+
+function syncPrecioBase(){
+  if(!productos.length) return;
+  productos.forEach(p=>{if(!p.precioCustom) p.precio=precioFinal;});
+  renderMeses();renderResumen();
+  if(MODE==='porcentaje') renderRemanente();
+}
+
+function addProd(){
+  if(productos.length>=10){msg('Máximo 10 productos');return;}
+  productos.push({nombre:'',precio:precioFinal||0,precioCustom:false,base:MODE==='unitario'?1:0,meses:Array(12).fill('')});
+  renderProy();autoSave();
+}
+function delProd(i){productos.splice(i,1);renderProy();autoSave();}
+
+function renderProy(){renderProdTable();renderMeses();renderResumen();if(MODE==='porcentaje')renderRemanente();}
+
+function renderProdTable(){
+  const tbody=document.getElementById('prod-tbody');
+  tbody.innerHTML=productos.map((p,i)=>`
+    <tr>
+      <td><input class="pinp" type="text" placeholder="${MODE==='unitario'?'Nombre producto/servicio':'Nombre obra/servicio'}" value="${p.nombre}" oninput="productos[${i}].nombre=this.value;renderMeses();renderResumen();if(MODE==='porcentaje')renderRemanente();autoSave()"></td>
+      <td><input class="pinp num" type="text" inputmode="decimal" placeholder="${fmtN(precioFinal)||'0'}" value="${p.precioCustom?p.precio:''}" oninput="setPrecio(${i},this.value)" style="width:85px" title="${MODE==='porcentaje'?'Valor total de la obra':'Dejá vacío para usar el precio calculado'}"></td>
+      <td><input class="pinp num" type="text" inputmode="decimal" placeholder="ref" value="${p.base===''?'':p.base}" oninput="productos[${i}].base=parseFloat(this.value.replace(',','.'))||0;renderMeses();renderResumen();if(MODE==='porcentaje')renderRemanente();autoSave()" style="width:55px"></td>
+      <td><button class="pdel" onclick="delProd(${i})" title="Eliminar">×</button></td>
+    </tr>`).join('');
+}
+
+function setPrecio(i,v){
+  const n=parseFloat(v.replace(/\./g,'').replace(',','.'))||0;
+  if(v.trim()===''){productos[i].precioCustom=false;productos[i].precio=precioFinal;}
+  else{productos[i].precioCustom=true;productos[i].precio=n;}
+  renderMeses();renderResumen();autoSave();
+}
+
+function valMes(p,m){
+  const rawStr=(p.meses[m]||"").toString().trim();
+  if(rawStr==="") return 0;
+  const mv=parseFloat(rawStr.replace(",","."))||0;
+  const precio=p.precio||precioFinal||0;
+  if(MODE==="unitario") return mv*precio;
+  return precio*mv/100;
+}
+
+function pctUsado(p){
+  return Array.from({length:12},(_,m)=>{
+    const s=(p.meses[m]||"").toString().trim();
+    return s===""?0:parseFloat(s.replace(",","."))||0;
+  }).reduce((a,b)=>a+b,0);
+}
+
+function renderRemanente(){
+  const el=document.getElementById('rem-bars');
+  if(!el) return;
+  if(!productos.length){el.innerHTML='';return;}
+  el.innerHTML=productos.map((p,i)=>{
+    const usado=pctUsado(p);const rem=100-usado;
+    const fillPct=Math.min(usado,100);
+    const cls=usado>100?'over':usado===100?'ok':'warn';
+    const nombre=p.nombre||`Obra ${i+1}`;
+    const total=p.precio||precioFinal||0;
+    const remPesos=total*(rem/100);
+    return `<div class="rem-bar ${cls}">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nombre}</span>
+      <div class="rem-track"><div class="rem-fill ${cls}" style="width:${fillPct}%"></div></div>
+      <span style="min-width:40px;text-align:right">${Math.round(usado)}%</span>
+      <span style="min-width:76px;text-align:right;font-size:9px;color:inherit">
+        ${usado>100?'⚠ +'+Math.round(usado-100)+'% excedido':rem>0?'Rest.: '+Math.round(rem)+'%':'✓ Distribuido'}
+      </span>
+      ${rem>0&&rem<100?`<span style="min-width:68px;text-align:right;font-size:9px">$${Math.round(remPesos).toLocaleString('es-AR')}</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderMeses(){
+  const thead=document.getElementById('mes-thead');
+  const tbody=document.getElementById('mes-tbody');
+  if(!productos.length){
+    thead.innerHTML='';
+    tbody.innerHTML='<tr><td colspan="14" style="text-align:center;color:#888780;padding:14px;font-size:10px">Agregá al menos un producto para ver la proyección.</td></tr>';
+    return;
+  }
+  thead.innerHTML=`<tr><th class="lft">Producto / obra</th>${MESES_NOM.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr>`;
+  const placeholder=MODE==='unitario'?'unid':'%';
+  const totMeses=Array(12).fill(0);
+  const filas=productos.map((p,i)=>{
+    let totProd=0;
+    const celdas=MESES_NOM.map((_,m)=>{
+      const v=valMes(p,m);totMeses[m]+=v;totProd+=v;
+      const disp=v>0?'$'+Math.round(v).toLocaleString('es-AR'):'—';
+      const rawPct=parseFloat((p.meses[m]||'').toString().replace(',','.'))||parseFloat(p.base)||0;
+      const extra=MODE==='porcentaje'&&v>0?`<span style="font-size:8px;color:#888780">${rawPct}%</span>`:'';
+      return {v,disp,extra,placeholder};
+    });
+    return {p,i,celdas,totProd};
+  });
+  const rows=tbody.querySelectorAll('tr:not(.tot-row)');
+  const needRebuild=rows.length!==productos.length||(tbody.querySelector('.minp-m')&&tbody.querySelector('.minp-m').placeholder!==placeholder);
+  if(needRebuild){
+    tbody.innerHTML=filas.map(({p,i,celdas,totProd})=>{
+      const pctTxt=MODE==='porcentaje'?` <span class="pct-used" style="font-size:9px;color:#888780">(${Math.round(pctUsado(p))}%)</span>`:'';
+      const celdasHtml=celdas.map(({disp,extra,placeholder},m)=>`
+        <td><div style="display:flex;flex-direction:column;gap:1px;align-items:center">
+          <input class="minp-m" type="text" inputmode="numeric" placeholder="${placeholder}" value="${p.meses[m]||''}"
+            oninput="productos[${i}].meses[${m}]=this.value;updMesCalc();autoSave()"
+            onkeydown="onKeyNavMes(event,${i},${m})">
+          <span class="mval-calc ${disp!=='—'?'pos':''}" data-pi="${i}" data-m="${m}">${disp}</span>${extra}
+        </div></td>`).join('');
+      return `<tr data-pi="${i}"><td class="lft" title="${p.nombre||'(sin nombre)'}"><span class="prod-nom">${p.nombre||'(sin nombre)'}</span>${pctTxt}</td>${celdasHtml}<td class="ptot prod-tot">$${Math.round(totProd).toLocaleString('es-AR')}</td></tr>`;
+    }).join('');
+  } else {
+    filas.forEach(({p,i,celdas,totProd})=>{
+      const row=tbody.querySelector(`tr[data-pi="${i}"]`);if(!row)return;
+      celdas.forEach(({disp},m)=>{
+        const span=row.querySelector(`.mval-calc[data-pi="${i}"][data-m="${m}"]`);
+        if(span){span.textContent=disp;span.className='mval-calc '+(disp!=='—'?'pos':'');}
+      });
+      const totEl=row.querySelector('.prod-tot');if(totEl)totEl.textContent='$'+Math.round(totProd).toLocaleString('es-AR');
+      if(MODE==='porcentaje'){const pctEl=row.querySelector('.pct-used');if(pctEl)pctEl.textContent=`(${Math.round(pctUsado(p))}%)`;}
+    });
+  }
+  let totRow=tbody.querySelector('.tot-row');
+  if(!totRow){totRow=document.createElement('tr');totRow.className='tot-row';tbody.appendChild(totRow);}
+  totRow.innerHTML=`<td class="lft">Total mensual</td>${totMeses.map(v=>`<td class="lft" style="text-align:center;color:${v>0?'#27500A':'#888780'}">${v>0?'$'+Math.round(v).toLocaleString('es-AR'):'—'}</td>`).join('')}<td class="lft" style="text-align:right">$${Math.round(totMeses.reduce((a,b)=>a+b,0)).toLocaleString('es-AR')}</td>`;
+}
+
+function updMesCalc(){renderMeses();renderResumen();if(MODE==='porcentaje')renderRemanente();}
+function onKeyNavMes(e,pi,m){
+  if(e.key!=='Enter')return;e.preventDefault();
+  const next=m<11?document.querySelector(`.minp-m[oninput*="productos[${pi}].meses[${m+1}]"]`):null;
+  if(next)next.focus();
+}
+
+function renderResumen(){
+  const el=document.getElementById('proy-resumen');if(!el)return;
+  const totMeses=Array(12).fill(0);
+  productos.forEach(p=>MESES_NOM.forEach((_,m)=>{totMeses[m]+=valMes(p,m);}));
+  const total=totMeses.reduce((a,b)=>a+b,0);
+  const prom=total/12;const mejor=Math.max(...totMeses);
+  const extras=MODE==='porcentaje'
+    ?`<div class="proy-sum-row"><span>Total obras en cartera</span><span>$${Math.round(productos.reduce((a,p)=>a+(p.precio||precioFinal||0),0)).toLocaleString('es-AR')}</span></div>
+       <div class="proy-sum-row"><span>Pendiente de cobro</span><span style="color:#633806">$${Math.round(productos.reduce((a,p)=>{const rem=100-pctUsado(p);return a+(p.precio||precioFinal||0)*(rem/100);},0)).toLocaleString('es-AR')}</span></div>`:'';
+  el.innerHTML=`
+    <div class="proy-sum-row"><span>Proyección anual total</span><span style="font-weight:500;color:${total>0?'#27500A':'#888780'}">${total>0?'$'+Math.round(total).toLocaleString('es-AR'):'—'}</span></div>
+    <div class="proy-sum-row"><span>Promedio mensual</span><span>${prom>0?'$'+Math.round(prom).toLocaleString('es-AR'):'—'}</span></div>
+    <div class="proy-sum-row"><span>Mejor mes</span><span style="color:#27500A">${mejor>0?'$'+Math.round(mejor).toLocaleString('es-AR'):'—'}</span></div>
+    <div class="proy-sum-row"><span>Productos / obras activos</span><span>${productos.length}</span></div>${extras}`;
+}
+
+function getSnap(){
+  const snap={emp:document.getElementById('empNombre').value,mode:MODE,productos,at:new Date().toISOString()};
+  const img=document.getElementById('logoImg');snap.logo=img.style.display!=='none'?img.src:null;
+  const ids=['psvc_0','psvc_1','psvc_2','pins_0','pins_1','pins_2','pbk_0','pbk_1',
+    'mdo_sueldo','mdo_cargas','mdo_otros','gdir_fletes','gdir_comb','gdir_serv','gdir_seg','gdir_sup','gdir_otros',
+    'pct-gindir','pct-benef','pct-gan','pct-iibb','pct-cd','monto-mono','mono-unid','sel-iva'];
+  snap.data={};
+  ids.forEach(id=>{const e=document.getElementById(id);if(e&&e.value)snap.data[id]=e.value;});
+  return snap;
+}
+
+function applySnap(snap){
+  document.getElementById('empNombre').value=snap.emp||'';
+  if(snap.logo){const img=document.getElementById('logoImg');img.src=snap.logo;img.style.display='block';document.getElementById('lhint').style.display='none';document.getElementById('lremove').style.display='inline';}
+  Object.entries(snap.data||{}).forEach(([k,v])=>{
+    const e=document.getElementById(k);if(!e)return;
+    if(e.classList.contains('finp')&&!e.classList.contains('pct')){
+      const n=parseVal(v);e.value=n?Math.round(Math.abs(n)).toLocaleString('es-AR'):v;
+    } else {e.value=v;}
+  });
+  if(snap.mode)setMode(snap.mode);
+  if(snap.productos)productos=snap.productos;
+  calcPrecio();renderProy();
+}
+
+function guardar(){try{localStorage.setItem(SK,JSON.stringify(getSnap()));msg('Guardado ✓');}catch(e){msg('Error');}}
+function autoSave(){try{localStorage.setItem(SK,JSON.stringify(getSnap()));}catch(e){}}
+function backup(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(getSnap(),null,2)],{type:'application/json'}));
+  a.download='backup_precio_'+(document.getElementById('empNombre').value||'empresa').replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();msg('Backup descargado ✓');
+}
+function recuperar(inp){
+  const f=inp.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=e=>{try{const s=JSON.parse(e.target.result);applySnap(s);localStorage.setItem(SK,JSON.stringify(s));msg('Recuperado ✓');}catch(ex){msg('Archivo inválido');}};
+  rd.readAsText(f);inp.value='';
+}
+function limpiar(){
+  if(!confirm('¿Limpiar todos los datos?'))return;
+  ['psvc_0','psvc_1','psvc_2','pins_0','pins_1','pins_2','pbk_0','pbk_1',
+  'mdo_sueldo','mdo_cargas','mdo_otros','gdir_fletes','gdir_comb','gdir_serv','gdir_seg','gdir_sup','gdir_otros',
+  'pct-gindir','pct-benef','pct-gan','pct-iibb','pct-cd','monto-mono','mono-unid'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('sel-iva').value='21';
+  document.getElementById('empNombre').value='';
+  productos=[];calcPrecio();renderProy();autoSave();msg('Limpiado ✓');
+}
+function msg(t){const e=document.getElementById('ssmsg');e.textContent=t;setTimeout(()=>e.textContent='',3000);}
+function loadLogo(inp){const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{setLogo(e.target.result);};rd.readAsDataURL(f);}
+function setLogo(src){const img=document.getElementById('logoImg');img.src=src;img.style.display='block';document.getElementById('lhint').style.display='none';document.getElementById('lremove').style.display='inline';autoSave();}
+function removeLogo(){const img=document.getElementById('logoImg');img.src='';img.style.display='none';document.getElementById('lhint').style.display='';document.getElementById('lremove').style.display='none';autoSave();}
+
+function fillResumenPrecio(){
+  const psvc=[0,1,2].reduce((a,i)=>a+gn('psvc_'+i),0);
+  const pins=[0,1,2].reduce((a,i)=>a+gn('pins_'+i),0);
+  const pbk=[0,1].reduce((a,i)=>a+gn('pbk_'+i),0);
+  const mdo=gn('mdo_sueldo')+gn('mdo_cargas')+gn('mdo_otros');
+  const gdir=gn('gdir_fletes')+gn('gdir_comb')+gn('gdir_serv')+gn('gdir_seg')+gn('gdir_sup')+gn('gdir_otros');
+  const cd=psvc+pins+pbk+mdo+gdir;
+  const gi=cd*(gn('pct-gindir')/100);const ct=cd+gi;
+  const benef=ct*(gn('pct-benef')/100);const cai=ct+benef;
+  const rGan=benef*(gn('pct-gan')/100);
+  const pctIIBB=gn('pct-iibb')/100;const pctCD=gn('pct-cd')/100;const mono=gn('monto-mono');
+  const denom=1-pctIIBB-pctCD;
+  const cf=denom>0?(cai+rGan+mono)/denom:(cai+rGan+mono);
+  const rIIBB=cf*pctIIBB;const rCD=cf*pctCD;
+  const totImp=rGan+rIIBB+rCD+mono;
+  const pctIVA=parseFloat(document.getElementById('sel-iva').value)/100;
+  const iva=cf*pctIVA;const pf=cf+iva;const pfr=Math.ceil(pf/100)*100;
+  document.getElementById('rp-empresa').textContent=document.getElementById('empNombre').value||'';
+  const sv=(v,id)=>{const e=document.getElementById(id);if(e)e.textContent=v>0?'$'+Math.round(v).toLocaleString('es-AR'):'—';};
+  sv(psvc,'rp-psvc');sv(pins,'rp-pins');sv(pbk,'rp-pbk');sv(mdo,'rp-mdo');sv(gdir,'rp-gdir');
+  sv(cd,'rp-cd');sv(gi,'rp-gi');sv(ct,'rp-ct');sv(benef,'rp-benef');sv(cai,'rp-cai');
+  sv(totImp,'rp-imp');sv(cf,'rp-cf');sv(iva,'rp-iva');sv(pf,'rp-pf');sv(pfr,'rp-pfr');
+}
+
+function descargarJPG(){
+  msg('Generando imagen...');
+  const footer=document.querySelector('.footer');const btns=document.querySelector('.btns');const tabs=document.querySelector('.tabs');
+  if(footer)footer.style.display='none';if(btns)btns.style.display='none';if(tabs)tabs.style.display='none';
+  const esP=document.getElementById('panel-precio').classList.contains('active');
+  let panelPrecioContent=null;
+  if(esP){
+    fillResumenPrecio();
+    panelPrecioContent=document.querySelectorAll('.layout');
+    panelPrecioContent.forEach(el=>el.style.display='none');
+    document.getElementById('resumen-precio').style.display='block';
+  }
+  const doCapture=()=>{
+    html2canvas(document.querySelector('.wrap'),{scale:2,backgroundColor:'#f8f7f4',useCORS:true}).then(canvas=>{
+      if(footer)footer.style.display='';if(btns)btns.style.display='';if(tabs)tabs.style.display='';
+      if(esP){if(panelPrecioContent)panelPrecioContent.forEach(el=>el.style.display='');document.getElementById('resumen-precio').style.display='none';}
+      const a=document.createElement('a');
+      a.download=(esP?'precio':'proyeccion')+'_'+(document.getElementById('empNombre').value||'empresa').replace(/\s+/g,'_')+'.jpg';
+      a.href=canvas.toDataURL('image/jpeg',0.92);a.click();msg('JPG descargado ✓');
+    });
+  };
+  if(window.html2canvas){doCapture();return;}
+  const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+  s.onload=doCapture;s.onerror=()=>{
+    if(footer)footer.style.display='';if(btns)btns.style.display='';if(tabs)tabs.style.display='';
+    if(esP){if(panelPrecioContent)panelPrecioContent.forEach(el=>el.style.display='');document.getElementById('resumen-precio').style.display='none';}
+    msg('Error librería');
+  };
+  document.head.appendChild(s);
+}
+
+document.addEventListener('paste',function(e){
+  const items=(e.clipboardData||e.originalEvent.clipboardData).items;
+  for(const item of items){if(item.type.startsWith('image/')){const rd=new FileReader();rd.onload=ev=>setLogo(ev.target.result);rd.readAsDataURL(item.getAsFile());break;}}
+});
+
+// migrar datos del SK viejo si existen
+try{
+  const old=localStorage.getItem('precio_v1');
+  if(old&&!localStorage.getItem(SK)){localStorage.setItem(SK,old);}
+}catch(e){}
+
+try{const r=localStorage.getItem(SK);if(r)applySnap(JSON.parse(r));else calcPrecio();}catch(e){calcPrecio();}
+</script>
+</body>
+</html>
