@@ -213,6 +213,22 @@ button:hover{background:#f1efe8}
 <!-- COLUMNA PRINCIPAL -->
 <div class="panel-precio-main">
 
+<!-- AMORTIZACIONES -->
+<div class="acord">
+  <div class="acord-hd" onclick="tog('amort')">
+    <span class="acord-badge bt">Amortizaciones</span>
+    <span class="acord-title">Amortización de bienes de uso</span>
+    <span class="acord-tot" id="tot-amort">—</span>
+    <span class="acord-arr" id="arr-amort">▼</span>
+  </div>
+  <div class="acord-body" id="body-amort">
+    <div class="finp-row">
+      <label>Importe mensual a imputar al costo</label>
+      <input class="finp" type="text" inputmode="numeric" placeholder="0" id="amort_imp" oninput="calcPrecio()" onblur="onBlurFmt(this)" onfocus="onFocusFmt(this)" onkeydown="onKeyNavFinp(event)" style="width:120px">
+    </div>
+  </div>
+</div>
+
 <!-- PROVEEDORES -->
 <div class="acord">
   <div class="acord-hd" onclick="tog('prov')">
@@ -412,6 +428,7 @@ button:hover{background:#f1efe8}
 <div class="precio-sidebar">
   <div class="sidebar-card">
     <h3>Resumen</h3>
+    <div class="sb-row"><span class="sb-lbl">Amortizaciones</span><span class="sb-val" id="sb-amort">—</span></div>
     <div class="sb-row"><span class="sb-lbl">Proveedores</span><span class="sb-val" id="sb-prov">—</span></div>
     <div class="sb-row"><span class="sb-lbl">Mano de obra</span><span class="sb-val" id="sb-mdo">—</span></div>
     <div class="sb-row"><span class="sb-lbl">Gs. directos</span><span class="sb-val" id="sb-gdir">—</span></div>
@@ -441,6 +458,7 @@ button:hover{background:#f1efe8}
     </div>
     <img id="rp-logo" style="height:42px;max-width:100px;object-fit:contain;display:none" alt="logo">
   </div>
+  <div class="rp-row"><span class="rp-lbl">Amortizaciones</span><span class="rp-val" id="rp-amort">—</span></div>
   <div class="rp-row"><span class="rp-lbl">Servicios proveedores</span><span class="rp-val" id="rp-psvc">—</span></div>
   <div class="rp-row"><span class="rp-lbl">Insumos y materiales</span><span class="rp-val" id="rp-pins">—</span></div>
   <div class="rp-row"><span class="rp-lbl">Bienes de capital</span><span class="rp-val" id="rp-pbk">—</span></div>
@@ -499,6 +517,14 @@ button:hover{background:#f1efe8}
     </table>
   </div>
 
+  <div class="meses-wrap" id="desg-wrap" style="margin-top:12px;display:none">
+    <div style="font-size:10px;color:#888780;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding-left:2px">Desagregado mensual por rubro</div>
+    <table class="mes-table" id="desg-table">
+      <thead id="desg-thead"></thead>
+      <tbody id="desg-tbody"></tbody>
+    </table>
+  </div>
+
   <div class="proy-res">
     <h3>Resumen proyección anual</h3>
     <div id="proy-resumen"></div>
@@ -553,6 +579,9 @@ function onKeyNavFinp(e){
 
 let precioFinal=0;
 function calcPrecio(){
+  const amort=gn('amort_imp');
+  si('tot-amort',fmt(amort));si('sb-amort',fmt(amort));
+
   const psvc=[0,1,2].reduce((a,i)=>a+gn('psvc_'+i),0);
   const pins=[0,1,2].reduce((a,i)=>a+gn('pins_'+i),0);
   const pbk=[0,1].reduce((a,i)=>a+gn('pbk_'+i),0);
@@ -566,7 +595,7 @@ function calcPrecio(){
   const gdir=gn('gdir_fletes')+gn('gdir_comb')+gn('gdir_serv')+gn('gdir_seg')+gn('gdir_sup')+gn('gdir_otros');
   si('tot-gdir',fmt(gdir));si('sb-gdir',fmt(gdir));
 
-  const cd=prov+mdo+gdir;
+  const cd=amort+prov+mdo+gdir;
   si('val-cd',fmt(cd));si('sb-cd',fmt(cd));
 
   const pctGI=gn('pct-gindir')/100;
@@ -647,7 +676,7 @@ function addProd(){
 }
 function delProd(i){productos.splice(i,1);renderProy();autoSave();}
 
-function renderProy(){renderProdTable();renderMeses();renderResumen();if(MODE==='porcentaje')renderRemanente();}
+function renderProy(){renderProdTable();renderMeses();renderDesgloseMensual();renderResumen();if(MODE==='porcentaje')renderRemanente();}
 
 function renderProdTable(){
   const tbody=document.getElementById('prod-tbody');
@@ -762,7 +791,76 @@ function renderMeses(){
   totRow.innerHTML=`<td class="lft">Total mensual</td>${totMeses.map(v=>`<td class="lft" style="text-align:center;color:${v>0?'#27500A':'#888780'}">${v>0?'$'+Math.round(v).toLocaleString('es-AR'):'—'}</td>`).join('')}<td class="lft" style="text-align:right">$${Math.round(totMeses.reduce((a,b)=>a+b,0)).toLocaleString('es-AR')}</td>`;
 }
 
-function updMesCalc(){renderMeses();renderResumen();if(MODE==='porcentaje')renderRemanente();}
+function updMesCalc(){renderMeses();renderDesgloseMensual();renderResumen();if(MODE==='porcentaje')renderRemanente();}
+
+function renderDesgloseMensual(){
+  const wrap=document.getElementById('desg-wrap');
+  const thead=document.getElementById('desg-thead');
+  const tbody=document.getElementById('desg-tbody');
+  if(!wrap||!thead||!tbody)return;
+
+  // Totales por mes
+  const totMeses=Array(12).fill(0);
+  productos.forEach(p=>MESES_NOM.forEach((_,m)=>{totMeses[m]+=valMes(p,m);}));
+  const totAnual=totMeses.reduce((a,b)=>a+b,0);
+
+  if(totAnual<=0||!precioFinal){wrap.style.display='none';return;}
+  wrap.style.display='block';
+
+  const pf=precioFinal;
+  const amort=gn('amort_imp');
+  const psvc=[0,1,2].reduce((a,i)=>a+gn('psvc_'+i),0);
+  const pins=[0,1,2].reduce((a,i)=>a+gn('pins_'+i),0);
+  const pbk=[0,1].reduce((a,i)=>a+gn('pbk_'+i),0);
+  const mdo=gn('mdo_sueldo')+gn('mdo_cargas')+gn('mdo_otros');
+  const gdir=gn('gdir_fletes')+gn('gdir_comb')+gn('gdir_serv')+gn('gdir_seg')+gn('gdir_sup')+gn('gdir_otros');
+  const cd=amort+psvc+pins+pbk+mdo+gdir;
+  const gi=cd*(gn('pct-gindir')/100);
+  const ct=cd+gi;
+  const benef=ct*(gn('pct-benef')/100);
+  const cai=ct+benef;
+  const rGan=benef*(gn('pct-gan')/100);
+  const pctIIBB=gn('pct-iibb')/100;const pctCD2=gn('pct-cd')/100;
+  const mono=(gn('monto-mono'))/(gn('mono-unid')||1);
+  const denom=1-pctIIBB-pctCD2;
+  const cf=denom>0?(cai+rGan+mono)/denom:(cai+rGan+mono);
+  const rIIBB=cf*pctIIBB;const rCD=cf*pctCD2;
+  const totImp=rGan+rIIBB+rCD+mono;
+  const pctIVA=parseFloat(document.getElementById('sel-iva').value)/100;
+  const iva=cf*pctIVA;
+
+  const rubros=[
+    {lbl:'Amortizaciones', v:amort, sub:false},
+    {lbl:'Proveedores',    v:psvc+pins+pbk, sub:false},
+    {lbl:'Mano de obra',   v:mdo, sub:false},
+    {lbl:'Gs. directos',   v:gdir, sub:false},
+    {lbl:'= Costo directo',v:cd, sub:true},
+    {lbl:'Indirectos',     v:gi, sub:false},
+    {lbl:'= Costo total',  v:ct, sub:true},
+    {lbl:'Beneficio',      v:benef, sub:false},
+    {lbl:'Impuestos',      v:totImp, sub:false},
+    {lbl:'IVA',            v:iva, sub:false},
+    {lbl:'INGRESO TOTAL',  v:pf, sub:true, bold:true},
+  ];
+
+  const fmtV=v=>v>0?'$'+Math.round(v).toLocaleString('es-AR'):'—';
+
+  thead.innerHTML=`<tr><th class="lft">Rubro</th>${MESES_NOM.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr>`;
+
+  tbody.innerHTML=rubros.map(r=>{
+    if(r.v<=0&&!r.bold)return '';
+    const prop=r.v/pf;
+    const celdas=totMeses.map(tm=>fmtV(tm*prop));
+    const totRubro=totAnual*prop;
+    const bg=r.bold?'background:#1a1a18;color:#f8f7f4':r.sub?'background:#f1efe8;font-weight:500':'';
+    const tdStyle=r.bold?'style="color:#f8f7f4;font-weight:600;text-align:center"':r.sub?'style="text-align:center;font-weight:500"':'style="text-align:center;color:#27500A"';
+    return `<tr style="${bg}">
+      <td class="lft" style="${r.bold?'color:#f8f7f4;font-weight:600':r.sub?'font-weight:500':''}">${r.lbl}</td>
+      ${celdas.map(c=>`<td ${tdStyle}>${c}</td>`).join('')}
+      <td ${tdStyle}>${fmtV(totRubro)}</td>
+    </tr>`;
+  }).join('');
+}
 function onKeyNavMes(e,pi,m){
   if(e.key!=='Enter')return;e.preventDefault();
   const next=m<11?document.querySelector(`.minp-m[oninput*="productos[${pi}].meses[${m+1}]"]`):null;
@@ -775,20 +873,77 @@ function renderResumen(){
   productos.forEach(p=>MESES_NOM.forEach((_,m)=>{totMeses[m]+=valMes(p,m);}));
   const total=totMeses.reduce((a,b)=>a+b,0);
   const prom=total/12;const mejor=Math.max(...totMeses);
+
+  // Proporciones de cada componente sobre el precio final
+  const pf=precioFinal||1;
+  const amort=gn('amort_imp');
+  const psvc=[0,1,2].reduce((a,i)=>a+gn('psvc_'+i),0);
+  const pins=[0,1,2].reduce((a,i)=>a+gn('pins_'+i),0);
+  const pbk=[0,1].reduce((a,i)=>a+gn('pbk_'+i),0);
+  const mdo=gn('mdo_sueldo')+gn('mdo_cargas')+gn('mdo_otros');
+  const gdir=gn('gdir_fletes')+gn('gdir_comb')+gn('gdir_serv')+gn('gdir_seg')+gn('gdir_sup')+gn('gdir_otros');
+  const cd=amort+psvc+pins+pbk+mdo+gdir;
+  const gi=cd*(gn('pct-gindir')/100);
+  const ct=cd+gi;
+  const benef=ct*(gn('pct-benef')/100);
+  const cai=ct+benef;
+  const rGan=benef*(gn('pct-gan')/100);
+  const pctIIBB=gn('pct-iibb')/100;const pctCD=gn('pct-cd')/100;
+  const monoTotal=gn('monto-mono');const monoUnid=gn('mono-unid')||1;const mono=monoTotal/monoUnid;
+  const denom=1-pctIIBB-pctCD;
+  const cf=denom>0?(cai+rGan+mono)/denom:(cai+rGan+mono);
+  const rIIBB=cf*pctIIBB;const rCD=cf*pctCD;
+  const totImp=rGan+rIIBB+rCD+mono;
+  const pctIVA=parseFloat(document.getElementById('sel-iva').value)/100;
+  const iva=cf*pctIVA;
+
+  const comp=[
+    {lbl:'Amortizaciones', v:amort},
+    {lbl:'Proveedores', v:psvc+pins+pbk},
+    {lbl:'Mano de obra', v:mdo},
+    {lbl:'Gastos directos', v:gdir},
+    {lbl:'= Costo directo', v:cd, sub:true},
+    {lbl:'Gastos indirectos', v:gi},
+    {lbl:'= Costo total', v:ct, sub:true},
+    {lbl:'Beneficio', v:benef},
+    {lbl:'Impuestos', v:totImp},
+    {lbl:'= Costo final s/IVA', v:cf, sub:true},
+    {lbl:'IVA', v:iva},
+    {lbl:'PRECIO FINAL', v:pf, bold:true},
+  ];
+
+  const fmtR=v=>v>0?'$'+Math.round(v*total/pf).toLocaleString('es-AR'):'—';
+  const compRows=total>0?comp.map(c=>{
+    const projected=Math.round(c.v*total/pf);
+    const pct=pf>0?Math.round(c.v/pf*100):0;
+    const style=c.bold?'font-weight:600;color:#1a1a18;border-top:1px solid #d3d1c7;margin-top:4px;padding-top:4px'
+                :c.sub?'font-weight:500;color:#1a1a18;background:#f1efe8;padding:2px 6px;border-radius:3px;margin:2px 0'
+                :'color:#5f5e5a';
+    return `<div class="proy-sum-row" style="${style}">
+      <span>${c.lbl}</span>
+      <span>${c.v>0?'$'+Math.round(projected).toLocaleString('es-AR'):'—'}${pct>0&&!c.bold?` <small style="color:#b4b2a9">${pct}%</small>`:''}</span>
+    </div>`;
+  }).join(''):'';
+
   const extras=MODE==='porcentaje'
     ?`<div class="proy-sum-row"><span>Total obras en cartera</span><span>$${Math.round(productos.reduce((a,p)=>a+(p.precio||precioFinal||0),0)).toLocaleString('es-AR')}</span></div>
        <div class="proy-sum-row"><span>Pendiente de cobro</span><span style="color:#633806">$${Math.round(productos.reduce((a,p)=>{const rem=100-pctUsado(p);return a+(p.precio||precioFinal||0)*(rem/100);},0)).toLocaleString('es-AR')}</span></div>`:'';
+
   el.innerHTML=`
     <div class="proy-sum-row"><span>Proyección anual total</span><span style="font-weight:500;color:${total>0?'#27500A':'#888780'}">${total>0?'$'+Math.round(total).toLocaleString('es-AR'):'—'}</span></div>
     <div class="proy-sum-row"><span>Promedio mensual</span><span>${prom>0?'$'+Math.round(prom).toLocaleString('es-AR'):'—'}</span></div>
     <div class="proy-sum-row"><span>Mejor mes</span><span style="color:#27500A">${mejor>0?'$'+Math.round(mejor).toLocaleString('es-AR'):'—'}</span></div>
-    <div class="proy-sum-row"><span>Productos / obras activos</span><span>${productos.length}</span></div>${extras}`;
+    <div class="proy-sum-row"><span>Productos / obras activos</span><span>${productos.length}</span></div>${extras}
+    ${total>0?`<div style="border-top:1px solid #d3d1c7;margin-top:10px;padding-top:10px">
+      <div style="font-size:10px;color:#888780;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Desagregado proyectado anual</div>
+      ${compRows}
+    </div>`:''}`;
 }
 
 function getSnap(){
   const snap={emp:document.getElementById('empNombre').value,mode:MODE,productos,at:new Date().toISOString()};
   const img=document.getElementById('logoImg');snap.logo=img.style.display!=='none'?img.src:null;
-  const ids=['psvc_0','psvc_1','psvc_2','pins_0','pins_1','pins_2','pbk_0','pbk_1',
+  const ids=['amort_imp','psvc_0','psvc_1','psvc_2','pins_0','pins_1','pins_2','pbk_0','pbk_1',
     'mdo_sueldo','mdo_cargas','mdo_otros','gdir_fletes','gdir_comb','gdir_serv','gdir_seg','gdir_sup','gdir_otros',
     'pct-gindir','pct-benef','pct-gan','pct-iibb','pct-cd','monto-mono','mono-unid','sel-iva'];
   snap.data={};
@@ -826,7 +981,7 @@ function recuperar(inp){
 }
 function limpiar(){
   if(!confirm('¿Limpiar todos los datos?'))return;
-  ['psvc_0','psvc_1','psvc_2','pins_0','pins_1','pins_2','pbk_0','pbk_1',
+  ['amort_imp','psvc_0','psvc_1','psvc_2','pins_0','pins_1','pins_2','pbk_0','pbk_1',
   'mdo_sueldo','mdo_cargas','mdo_otros','gdir_fletes','gdir_comb','gdir_serv','gdir_seg','gdir_sup','gdir_otros',
   'pct-gindir','pct-benef','pct-gan','pct-iibb','pct-cd','monto-mono','mono-unid'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('sel-iva').value='21';
@@ -839,12 +994,13 @@ function setLogo(src){const img=document.getElementById('logoImg');img.src=src;i
 function removeLogo(){const img=document.getElementById('logoImg');img.src='';img.style.display='none';document.getElementById('lhint').style.display='';document.getElementById('lremove').style.display='none';autoSave();}
 
 function fillResumenPrecio(){
+  const amort=gn('amort_imp');
   const psvc=[0,1,2].reduce((a,i)=>a+gn('psvc_'+i),0);
   const pins=[0,1,2].reduce((a,i)=>a+gn('pins_'+i),0);
   const pbk=[0,1].reduce((a,i)=>a+gn('pbk_'+i),0);
   const mdo=gn('mdo_sueldo')+gn('mdo_cargas')+gn('mdo_otros');
   const gdir=gn('gdir_fletes')+gn('gdir_comb')+gn('gdir_serv')+gn('gdir_seg')+gn('gdir_sup')+gn('gdir_otros');
-  const cd=psvc+pins+pbk+mdo+gdir;
+  const cd=amort+psvc+pins+pbk+mdo+gdir;
   const gi=cd*(gn('pct-gindir')/100);const ct=cd+gi;
   const benef=ct*(gn('pct-benef')/100);const cai=ct+benef;
   const rGan=benef*(gn('pct-gan')/100);
@@ -862,7 +1018,7 @@ function fillResumenPrecio(){
   if(rpLogo&&srcLogo&&srcLogo.style.display!=='none'){rpLogo.src=srcLogo.src;rpLogo.style.display='block';}
   else if(rpLogo){rpLogo.style.display='none';}
   const sv=(v,id)=>{const e=document.getElementById(id);if(e)e.textContent=v>0?'$'+Math.round(v).toLocaleString('es-AR'):'—';};
-  sv(psvc,'rp-psvc');sv(pins,'rp-pins');sv(pbk,'rp-pbk');sv(mdo,'rp-mdo');sv(gdir,'rp-gdir');
+  sv(amort,'rp-amort');sv(psvc,'rp-psvc');sv(pins,'rp-pins');sv(pbk,'rp-pbk');sv(mdo,'rp-mdo');sv(gdir,'rp-gdir');
   sv(cd,'rp-cd');sv(gi,'rp-gi');sv(ct,'rp-ct');sv(benef,'rp-benef');sv(cai,'rp-cai');
   sv(totImp,'rp-imp');sv(cf,'rp-cf');sv(iva,'rp-iva');sv(pf,'rp-pf');sv(pfr,'rp-pfr');
 }
@@ -929,6 +1085,7 @@ function descargarPDFPrecio(empVal){
 
     // Obtener valores calculados
     const rows=[
+      ['Amortizaciones',        document.getElementById('rp-amort')?.textContent||'—'],
       ['Servicios proveedores', document.getElementById('rp-psvc')?.textContent||'—'],
       ['Insumos y materiales',  document.getElementById('rp-pins')?.textContent||'—'],
       ['Bienes de capital',     document.getElementById('rp-pbk')?.textContent||'—'],
@@ -1106,6 +1263,75 @@ function descargarPDF(empVal){
       theme:'plain',
       tableLineColor:[211,209,199],tableLineWidth:0.3
     });
+
+    // Tabla desagregado mensual por rubro — misma página
+    if(totAnual>0){
+      const pf=precioFinal||1;
+      const startYDesg=doc.lastAutoTable.finalY+16;
+      const amort=gn('amort_imp');
+      const psvc=[0,1,2].reduce((a,i)=>a+gn('psvc_'+i),0);
+      const pins=[0,1,2].reduce((a,i)=>a+gn('pins_'+i),0);
+      const pbk=[0,1].reduce((a,i)=>a+gn('pbk_'+i),0);
+      const mdo=gn('mdo_sueldo')+gn('mdo_cargas')+gn('mdo_otros');
+      const gdir=gn('gdir_fletes')+gn('gdir_comb')+gn('gdir_serv')+gn('gdir_seg')+gn('gdir_sup')+gn('gdir_otros');
+      const cd=amort+psvc+pins+pbk+mdo+gdir;
+      const gi=cd*(gn('pct-gindir')/100);const ct=cd+gi;
+      const benef=ct*(gn('pct-benef')/100);const cai=ct+benef;
+      const rGan=benef*(gn('pct-gan')/100);
+      const pctIIBB=gn('pct-iibb')/100;const pctCDx=gn('pct-cd')/100;
+      const mono=(gn('monto-mono'))/(gn('mono-unid')||1);
+      const denomx=1-pctIIBB-pctCDx;
+      const cf=denomx>0?(cai+rGan+mono)/denomx:(cai+rGan+mono);
+      const rIIBB=cf*pctIIBB;const rCD=cf*pctCDx;
+      const totImp=rGan+rIIBB+rCD+mono;
+      const pctIVA=parseFloat(document.getElementById('sel-iva').value)/100;
+      const iva=cf*pctIVA;
+
+      const rubros=[
+        {lbl:'Amortizaciones', v:amort, sub:false},
+        {lbl:'Proveedores',    v:psvc+pins+pbk, sub:false},
+        {lbl:'Mano de obra',   v:mdo, sub:false},
+        {lbl:'Gs. directos',   v:gdir, sub:false},
+        {lbl:'= Costo directo',v:cd, sub:true},
+        {lbl:'Indirectos',     v:gi, sub:false},
+        {lbl:'= Costo total',  v:ct, sub:true},
+        {lbl:'Beneficio',      v:benef, sub:false},
+        {lbl:'Impuestos',      v:totImp, sub:false},
+        {lbl:'IVA',            v:iva, sub:false},
+        {lbl:'INGRESO TOTAL',  v:pf, sub:true, bold:true},
+      ];
+
+      const fmtV=v=>v>0?'$'+Math.round(v).toLocaleString('es-AR'):'—';
+      const desgHead=[['Rubro',...MESES,'Total']];
+      const desgBody=rubros
+        .filter(r=>r.v>0||r.bold)
+        .map(r=>{
+          const prop=r.v/pf;
+          return [r.lbl,...totMeses.map(tm=>fmtV(tm*prop)),fmtV(totAnual*prop)];
+        });
+
+      doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(26,26,24);
+      doc.text('Desagregado mensual por rubro',margin,startYDesg);
+
+      doc.autoTable({
+        head:desgHead,
+        body:desgBody,
+        startY:startYDesg+8,
+        margin:{left:margin,right:margin},
+        styles:{fontSize:7,cellPadding:3,halign:'center'},
+        headStyles:{fillColor:[26,26,24],textColor:248,fontStyle:'bold',fontSize:7},
+        columnStyles:{0:{cellWidth:70,halign:'left',fontStyle:'bold'}},
+        didParseCell:function(data){
+          if(data.section!=='body')return;
+          const r=rubros.filter(rx=>rx.v>0||rx.bold)[data.row.index];
+          if(!r)return;
+          if(r.bold){data.cell.styles.fillColor=[26,26,24];data.cell.styles.textColor=[248,247,244];data.cell.styles.fontStyle='bold';}
+          else if(r.sub){data.cell.styles.fillColor=[241,239,232];data.cell.styles.fontStyle='bold';}
+          else{data.cell.styles.textColor=[39,80,10];}
+        },
+        tableLineColor:[211,209,199],tableLineWidth:0.3
+      });
+    }
 
     doc.save('proyeccion_'+(empVal||'empresa').replace(/\s+/g,'_')+'.pdf');
     msg('PDF descargado ✓');
